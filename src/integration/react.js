@@ -8,27 +8,47 @@ type Props = {
   children?: Node | Function,
   loading?: Node,
   persistor: Persistor,
+  delaySeconds?: number
 }
 
 type State = {
   bootstrapped: boolean,
+  delayDone: boolean
 }
 
 export class PersistGate extends PureComponent<Props, State> {
   static defaultProps = {
     loading: null,
+    delaySeconds: 0
   }
 
-  state = {
-    bootstrapped: false,
+  constructor(props: Props) {
+    super(props)
+    this.state = {
+      bootstrapped: false,
+      delayDone: !props.delaySeconds
+    }
   }
+
   _unsubscribe: ?Function
 
   componentDidMount() {
+    this.handleDelay()
+
     this._unsubscribe = this.props.persistor.subscribe(
       this.handlePersistorState
     )
     this.handlePersistorState()
+  }
+
+  handleDelay() {
+    console.log(`[PG handleDelay] gonna wait ${this.props.delaySeconds} s`)
+    if (this.props.delaySeconds) {
+      setTimeout(() => {
+        console.log(`[PG handleDelay timeout] waited ${this.props.delaySeconds} s`)        
+        this.setState({ delayDone: true })
+      }, this.props.delaySeconds * 1000)
+    }
   }
 
   handlePersistorState = () => {
@@ -51,6 +71,8 @@ export class PersistGate extends PureComponent<Props, State> {
   }
 
   render() {
+    console.log({ me: "PG RENDER", state: this.state, d: this.props.delaySeconds })
+
     if (process.env.NODE_ENV !== 'production') {
       if (typeof this.props.children === 'function' && this.props.loading)
         console.error(
@@ -58,9 +80,13 @@ export class PersistGate extends PureComponent<Props, State> {
         )
     }
     if (typeof this.props.children === 'function') {
-      return this.props.children(this.state.bootstrapped)
+      return this.props.children(this.state.bootstrapped && this.state.delayDone)
     }
 
-    return this.state.bootstrapped ? this.props.children : this.props.loading
+    return (
+      this.state.bootstrapped && this.state.delayDone 
+      ? this.props.children 
+      : this.props.loading
+    )
   }
 }

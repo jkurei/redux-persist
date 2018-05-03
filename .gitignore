@@ -1,6 +1,6 @@
 #es
-lib
-dist
+#lib
+#dist
 .watchmanconfig
 
 # Logs
